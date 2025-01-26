@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choisir un Groupe et ses Membres</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #5D5C61;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            color: #333;
+            cursor: pointer;
+            transition: background-color 0.3s ease, border 0.3s ease;
+        }
+
+        select:focus, button:focus {
+            outline: none;
+            border-color: #5c80d1;
+            background-color: #e1eaff;
+        }
+
+        button {
+            background-color: #5c80d1;
+            color: white;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #4a69a1;
+        }
+
+        .members-container {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f8f8;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .members-container label {
+            display: block;
+            padding: 8px;
+            margin: 5px 0;
+            font-size: 14px;
+            background-color: #e9eff7;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .members-container label:hover {
+            background-color: #c6d8e2;
+        }
+
+        .members-container input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .members-list {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            overflow-y: auto;
+            height: 150px;
+        }
+
+        .members-list div {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 6px;
+            background-color: #eef2f7;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .members-list div:hover {
+            background-color: #d8e1ea;
+        }
+
+        .members-list div span {
+            font-weight: 600;
+            color: #444;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            select, button {
+                font-size: 14px;
+            }
+
+            .members-container label {
+                font-size: 12px;
+            }
+        }
+    </style>
+
+    <script>
+        let groupData = {}; 
+
+        function fetchGroups() {
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbx94CXRqB_O7RxCPX3Z21NLUV732ievF6GrsBXmknUFeji0JzaIV_msnhbJARrq1Pfo/exec';
+
+            fetch(webAppUrl)
+                .then(response => response.json())
+                .then(data => {
+                    groupData = data;
+
+                    const groupSelect = document.getElementById('groupSelect');
+                    groupSelect.innerHTML = '<option value="">Choisir un groupe</option>';
+                    Object.keys(data).forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group;
+                        option.textContent = group;
+                        groupSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Erreur lors de la récupération des groupes :', error));
+        }
+
+
+        function displayMembers() {
+            const groupSelect = document.getElementById('groupSelect');
+            const selectedGroup = groupSelect.value;
+            const membersContainer = document.getElementById('membersContainer');
+            membersContainer.innerHTML = '';
+
+            if (selectedGroup && groupData[selectedGroup]) {
+                groupData[selectedGroup].forEach(({ code, member }) => {
+                    const label = document.createElement('label');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = `${code}||${member}`; 
+                    checkbox.name = 'members';
+
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(`(${code}) ${member} `));
+                    membersContainer.appendChild(label);
+                });
+            }
+        }
+
+     
+        function updateMemberCount() {
+            const selectedCount = document.querySelectorAll('input[name="members"]:checked').length;
+            document.getElementById('selectedCount').textContent = selectedCount;
+        }
+
+   
+        function submitData() {
+            const selectedGroup = document.getElementById('groupSelect').value; 
+            const selectedMembers = Array.from(document.querySelectorAll('input[name="members"]:checked'))
+                .map(cb => {
+                    const [code, member] = cb.value.split("||");
+                    return { code, member };
+                });
+
+            if (selectedMembers.length === 0 || !selectedGroup) {
+                alert("Veuillez choisir des membres et un groupe.");
+                return;
+            }
+
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbwEY31oTyKOCbj3Qu_phTqZaf-4hF2JXNVLvUXl6_jLXQY134PmisuzOr3ROQNrqBeR/exec';
+
+            fetch(webAppUrl, {
+                method: 'POST',
+                mode: "no-cors",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ members: selectedMembers, group: selectedGroup })
+            })
+                .then(response => response.text())
+                .then(data => {
+                    alert("c ok.");
+                    clearSelections();
+                })
+                .catch(error => {
+                    console.error("Erreur lors de l'envoi :", error);
+                    alert("Une erreur est survenue lors de l'envoi. Veuillez réessayer.");
+                });
+        }
+
+        function clearSelections() {
+            const checkboxes = document.querySelectorAll('input[name="members"]');
+            checkboxes.forEach(checkbox => checkbox.checked = false);
+            document.getElementById('selectedCount').textContent = '0';
+        }
+
+        window.onload = function() {
+            fetchGroups();
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Choisir un Groupe et ses Membres</h1>
+
+        <div>Nombre de membres sélectionnés : <span id="selectedCount">0</span></div>
+
+        <select id="groupSelect" onchange="displayMembers()">
+            <option value="">Chargement en cours...</option>
+        </select>
+
+        <div id="membersContainer" class="members-container"></div>
+
+        <button onclick="submitData()">Envoyer la liste</button>
+
+        
+    </div>
+</body>
+</html>
